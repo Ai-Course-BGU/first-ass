@@ -8,8 +8,8 @@ from search import *
 
 if __name__ == '__main__':
 
-    start_blocks = "(1,2),(3,4),(5,6),(7,8),(9,10),(11,12),(13,14)"
-    goal_blocks = "4,14,6,2,8,12,10"
+    start_blocks = "(1,2),(3,4),(5,6),(7,8),(9,10)"
+    goal_blocks = "4,6,2,8,10"
     init_goal_for_heuristics(goal_blocks)
     init_goal_for_search(goal_blocks)
     start_state = color_blocks_state(start_blocks)

@@ -2,7 +2,8 @@
 goal_state = []
 def init_goal_for_search(goal_blocks):
     currNumber = ""
-    goal_state.clear()
+    global goal_state
+    goal_state=[]
     counter = 0
     for c in goal_blocks:
         # print(c,'to add on ', currNumber, 'and we are on the last index ', goal_blocks.index(c),' and the length is ', len(goal_blocks))
@@ -60,8 +61,8 @@ class color_blocks_state:
         neighbors = []
         for i in range (len(self.blocks)):
             new_state_flip = self.flip_block(i)
-            if i!= len(self.blocks):
-                neighbors.append((new_state_flip,1))
+            # if i!= len(self.blocks):
+            neighbors.append((new_state_flip,1))
         for i in range (len(self.blocks)):
             new_state_spin = self.spin_block(i)
             neighbors.append((new_state_spin,0))
@@ -91,42 +92,27 @@ class color_blocks_state:
 
     #you can add helper functions [(1,2)]
     def flip_block(self, block_idx):
+        # make a shallow copy of the list of tuples (safe!)
         copy_blocks = self.blocks.copy()
-        currIndex = len(copy_blocks)-1
-        while currIndex > block_idx:
-            currTupple = copy_blocks[currIndex]
-            copy_blocks[currIndex] = copy_blocks[block_idx]
-            copy_blocks[block_idx] = currTupple
-            currIndex -= 1
-            block_idx += 1
-        toRet = color_blocks_state("")
-        toRet.setBlocks(copy_blocks)
-        return toRet
-        
-            
+
+        # reverse everything from block_idx to the end
+        copy_blocks[block_idx:] = reversed(copy_blocks[block_idx:])
+
+        new_state = color_blocks_state("")
+        new_state.setBlocks(copy_blocks)
+        return new_state
+
+    
     def spin_block(self, block_idx):
         copy_blocks = self.blocks.copy()
+
         copy_blocks[block_idx] = tuple(reversed(copy_blocks[block_idx]))
-        toRet = color_blocks_state("")
-        toRet.setBlocks(copy_blocks)
-        return toRet
+
+        new_state = color_blocks_state("")
+        new_state.setBlocks(copy_blocks)
+        return new_state
+
     def getBlockAt(self, index):
         return self.blocks[index]
     def getBlocks(self):
         return self.blocks
-    
-# stam = color_blocks_state("(5,2),(1,3),(9,22),(21,4)")
-# init_goal_for_search("2,22,4,3")
-# print(color_blocks_state.is_goal_state(stam))
-# init_goal_for_search("5,1,9,21")
-# print(color_blocks_state.is_goal_state(stam))
-# for state in goal_state:
-#     print(state,'\n')
-# stam.spin_block(0)
-# print(stam.blocks[0])
-# stam.flip_block(2)
-# print(stam.blocks)
-# neighbors = stam.get_neighbors()
-# print('neighbors:')
-# for neighbor in neighbors:
-#     print(neighbor)
