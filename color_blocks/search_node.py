@@ -7,7 +7,12 @@ class search_node():
         self.f = g + h
         self.prev = prev
 
-
+    
+    def setH(self, h):
+        self.h = h
+        self.f = self.g + self.h
+    def setPrev(self, prev):
+        self.prev = prev
     def __lt__(self, other):
         return (self.f < other.f) or (self.f == other.f and self.h < other.h)
 
