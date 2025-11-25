@@ -71,7 +71,7 @@ def search(start_state, heuristic, debug=False):
     """
     open_set = create_open_set()
     closed_set = create_closed_set()
-
+    
     start_node = search_node(start_state, 0, heuristic(start_state))
     add_to_open(start_node, open_set)
 

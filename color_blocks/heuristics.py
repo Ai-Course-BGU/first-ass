@@ -1,13 +1,14 @@
 from color_blocks_state import color_blocks_state, init_goal_for_search 
+
 # --- Global Data ---
 goal_state = []
-index_map = {}       # Will map value -> list of indices [i1, i2...]
-neighbors_map = {}   # Used for neighbor lookups
-goal_adjacent_color_pairs = set() # Optimized set for base_heuristic
+index_map = {}       # Maps value -> list of indices [i1, i2...]
+neighbors_map = {}   # Maps value -> sorted list of neighbor values
+goal_adjacent_color_pairs = set() # Optimized set for O(1) heuristic lookups
 
 def init_goal_for_heuristics(goal_blocks):
     global goal_state, index_map, neighbors_map, goal_adjacent_color_pairs
-
+    
     # 1. Parse Goal String
     goal_state = []
     curr = ""
@@ -22,7 +23,6 @@ def init_goal_for_heuristics(goal_blocks):
         goal_state.append(int(curr))
 
     # 2. Build index_map (value -> LIST of indices)
-    # FIX: Initialize as lists to allow iteration in advanced_heuristic
     index_map = {}
     for i, v in enumerate(goal_state):
         if v not in index_map:
@@ -40,7 +40,7 @@ def init_goal_for_heuristics(goal_blocks):
         neighbors_map[v] = sorted(neigh)
 
     # 4. Build optimized pairs set for base_heuristic
-    # (Matches logic from your previous code)
+    # We sort the pair (min, max) so lookups are order-independent
     pairs = set()
     for i in range(len(goal_state) - 1):
         left, right = goal_state[i], goal_state[i+1]
@@ -49,69 +49,46 @@ def init_goal_for_heuristics(goal_blocks):
         else:
             pairs.add((right, left))
     goal_adjacent_color_pairs = pairs
-    
+
 def base_heuristic(_color_blocks_state):
-    # print(type(_color_blocks_state))
-    # newTemp = color_blocks_state("")
-    # newTemp.setBlocks(_color_blocks_state)
-    # _color_blocks_state = newTemp
+    """
+    Optimized Base Heuristic.
+    Instead of scanning the goal_state list (O(N*M)), this uses O(1) set lookups.
+    Complexity: O(N) where N is the number of blocks in the current state.
+    """
+    blocks = _color_blocks_state.getBlocks()
     heu = 0
-    # print('--->', _color_blocks_state.get_state_str())
-    for i in range(len(_color_blocks_state.getBlocks())-1):
-        currTupA = _color_blocks_state.getBlockAt(i)
-        currTupB = _color_blocks_state.getBlockAt(i+1)
-        currHue = 0 
-        for j in range(len(goal_state)):
-            if goal_state[j] in currTupA:
-                # print('found block', goal_state[j], 'in', currTupA)
-                currHue = simple_heuristic( currTupB, goal_state,j)
-                if currHue == 0:
-                    break
-            if goal_state[j] in currTupB:
-                # print('found block', goal_state[j], 'in', currTupB)
-                currHue = simple_heuristic( currTupA, goal_state,j)
-                if currHue == 0:
-                    break
+    
+    # Iterate through adjacent blocks in the current state
+    for i in range(len(blocks) - 1):
+        currTupA = blocks[i]
+        currTupB = blocks[i+1]
+        
+        found_connection = False
+        
+        # Check if ANY color in Block A is adjacent to ANY color in Block B in the goal
+        # We use the pre-calculated goal_adjacent_color_pairs set.
+        for colorA in currTupA:
+            for colorB in currTupB:
+                # Create a canonical sorted pair to match the set keys
+                pair = (colorA, colorB) if colorA <= colorB else (colorB, colorA)
                 
-        # print
-        heu += currHue    
-        # print(f"Block {i} and Block {i+1} heuristic: {currHue} add to total {heu}")
+                if pair in goal_adjacent_color_pairs:
+                    found_connection = True
+                    break
+            if found_connection:
+                break
+        
+        # If these two blocks are NOT neighbors in the goal, add a penalty
+        if not found_connection:
+            heu += 1
             
-    # print("heuristic:", heu)
-    return heu   
-
-
-def simple_heuristic( currTupB, goal_state,j):
-    heuLocal = 0
-    # print('checking for goal block:', goal_state[j], 'with current block:', currTupB)
-    if j < len(goal_state)-1 and j!=0:
-            if goal_state[j+1] in currTupB or goal_state[j-1] in currTupB:
-                heuLocal+=0
-            else:
-                heuLocal +=1
-    if j == 0:
-        if goal_state[j+1] in currTupB:
-            heuLocal+=0
-        else:
-            heuLocal +=1
-    if j == len(goal_state)-1:
-        if goal_state[j-1] in currTupB:
-            heuLocal+=0
-        else:
-            heuLocal +=1
-    return heuLocal
-
-
-    
-    
-    
-    
-    
+    return heu 
 
 def advanced_heuristic(state):
     """
-    Advanced heuristic checking index distances and specific edge cases.
-    Fixed to handle index_map as a dictionary of lists.
+    Advanced heuristic checking index distances.
+    Optimized with early exits and clearer logic.
     """
     blocks = state.getBlocks()
     h = 0
@@ -119,38 +96,46 @@ def advanced_heuristic(state):
     if not blocks:
         return 0
 
-    # Case 1: First block's left color check
+    # --- Case 1: First block's left color check ---
+    # The very first color of the first block must exist in the goal
     first_left = blocks[0][0]
-    # Check if the exact color exists in the goal map
     found_first_left = first_left in index_map
+    if not found_first_left:
+        h += 1
 
+    # --- Iterate through adjacent blocks ---
     for i in range(len(blocks) - 1):
         A = blocks[i]
         B = blocks[i + 1]
         
-        # Unpack tuple (v, h)
-        # Note: Depending on your block structure, ensure A is (val, val) or similar
-        # Assuming blocks are tuples like (color1, color2)
-        
-        # Case 2: Next block's left color availability
-        b_left = B[0]
-        b_in_goal = b_left in index_map
+        # Check if the "Left" side of the next block is valid in goal map
+        # (Assuming block structure is consistent)
+        if B[0] not in index_map:
+            h += 1
 
-        # Case 3: Adjacency Logic using Index Map
+        # --- Case 3: Adjacency Logic using specific Indices ---
         pair_ok = False
 
+        # Nested loop optimization:
+        # We only need to find ONE valid connection between the two blocks
+        # to consider them "connected" in this heuristic step.
         for cA in A:
-            if cA not in index_map:
-                continue
+            if cA not in index_map: continue
+            
+            # Get list of goal indices for color A
+            indices_A = index_map[cA]
 
             for cB in B:
-                if cB not in index_map:
-                    continue
-
-                # FIX: Now index_map[cA] is a list, so we can iterate
-                for idxA in index_map[cA]:
-                    for idxB in index_map[cB]:
-                        # Check if they are adjacent in the goal (diff is 1)
+                if cB not in index_map: continue
+                
+                # Get list of goal indices for color B
+                indices_B = index_map[cB]
+                
+                # Check absolute distance between indices
+                # Since lists are usually short, nested iteration is okay here,
+                # but we break immediately upon finding a match.
+                for idxA in indices_A:
+                    for idxB in indices_B:
                         if abs(idxA - idxB) == 1:
                             pair_ok = True
                             break
@@ -158,15 +143,7 @@ def advanced_heuristic(state):
                 if pair_ok: break
             if pair_ok: break
 
-        # Penalties
         if not pair_ok:
             h += 1
-
-        if not b_in_goal:
-            h += 1
-
-    # Penalty for first block
-    if not found_first_left:
-        h += 1
 
     return h
