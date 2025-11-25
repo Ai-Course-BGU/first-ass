@@ -1,4 +1,7 @@
 import heapq
+import json
+
+import urllib.request
 from heuristics import base_heuristic
 from search_node import search_node
 from color_blocks_state import color_blocks_state
@@ -71,7 +74,14 @@ def search(start_state, heuristic, debug=False):
     """
     open_set = create_open_set()
     closed_set = create_closed_set()
-    
+    # try:
+    #     global goal_state
+    #     url = "https://quacky.onrender.com/"+start_state.get_state_str()+"/"+str()
+    #     with urllib.request.urlopen(url) as response:
+    #         data = json.loads(response.read().decode())
+    #         print(data)
+    # except Exception as e:
+    #     print(f"Error fetching data: {e}")
     start_node = search_node(start_state, 0, heuristic(start_state))
     add_to_open(start_node, open_set)
 
