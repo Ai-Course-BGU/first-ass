@@ -65,7 +65,7 @@ class color_blocks_state:
             neighbors.append((new_state_flip,1))
         for i in range (len(self.blocks)):
             new_state_spin = self.spin_block(i)
-            neighbors.append((new_state_spin,0))
+            neighbors.append((new_state_spin,1))
         return neighbors 
     # you can change the body of the function if you want
     # def __hash__(self):
@@ -73,6 +73,11 @@ class color_blocks_state:
     # def __eq__(self, other):
     # you can change the body of the function if you want
 
+    def __hash__(self):
+        return hash(tuple(self.blocks))
+
+    def __eq__(self, other):
+        return isinstance(other, color_blocks_state) and self.blocks == other.blocks
     # for debugging states
     def get_state_str(self):
         res = ""

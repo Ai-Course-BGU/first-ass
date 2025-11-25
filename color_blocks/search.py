@@ -3,94 +3,109 @@ from heuristics import base_heuristic
 from search_node import search_node
 from color_blocks_state import color_blocks_state
 
-
+# -----------------------------
+# Optimized Open/Closed Sets
+# -----------------------------
 def create_open_set():
-    return [], {}     # (heap, dict)
-
+    """Return an empty open set (heap, dict)."""
+    return [], {}  # heap, dict
 
 def create_closed_set():
-    return {}         # dict only
+    """Return an empty closed set (dict)."""
+    return {}  # state -> search_node
 
+def add_to_open(node, open_set):
+    """Add a node to the open set (heap + dict)."""
+    open_heap, open_dict = open_set
+    heapq.heappush(open_heap, node)
+    open_dict[node.state] = node
 
-def add_to_open(vn, open_heap, open_dict):
-    heapq.heappush(open_heap, vn)
-    open_dict[vn.state.get_state_str()] = vn
-
-
-def open_not_empty(open_heap):
+def open_not_empty(open_set):
+    open_heap, _ = open_set
     return len(open_heap) > 0
 
+def get_best(open_set):
+    """Pop the best node (lowest f) from the heap that is still in open_dict."""
+    open_heap, open_dict = open_set
+    while open_heap:
+        node = heapq.heappop(open_heap)
+        if node.state in open_dict and open_dict[node.state] is node:
+            del open_dict[node.state]
+            return node
+    return None
 
-def get_best(open_heap, open_dict):
-    best = heapq.heappop(open_heap)
-    state_str = best.state.get_state_str()
-    
-    # remove from dict
-    if state_str in open_dict:
-        del open_dict[state_str]
+def add_to_closed(node, closed_set):
+    closed_set[node.state] = node
 
-    return best
-
-
-def add_to_closed(vn, closed_set):
-    closed_set[vn.state.get_state_str()] = vn
-
-
-def duplicate_in_open(vn, open_dict):
-    state = vn.state.get_state_str()
-
-    if state not in open_dict:
+def duplicate_in_open(node, open_set):
+    """Check if a better node already exists in open set."""
+    _, open_dict = open_set
+    existing = open_dict.get(node.state)
+    if existing is None:
+        return False
+    if existing.g <= node.g:
+        return True
+    else:
+        open_dict[node.state] = node
         return False
 
-    old = open_dict[state]
-    return vn.g >= old.g
-
-
-def duplicate_in_closed(vn, closed_set):
-    state = vn.state.get_state_str()
-
-    if state not in closed_set:
+def duplicate_in_closed(node, closed_set):
+    """Check if a better node already exists in closed set."""
+    existing = closed_set.get(node.state)
+    if existing is None:
+        return False
+    if existing.g <= node.g:
+        return True
+    else:
+        del closed_set[node.state]
         return False
 
-    old = closed_set[state]
-    return vn.g >= old.g
-
-
-def search(start_state, heuristic):
-    open_heap, open_dict = create_open_set()
+# -----------------------------
+# Optimized A* Search
+# -----------------------------
+def search(start_state, heuristic, debug=False):
+    """
+    Optimized A* search using:
+      - open set: (heap, dict)
+      - closed set: dict
+    """
+    open_set = create_open_set()
     closed_set = create_closed_set()
 
     start_node = search_node(start_state, 0, heuristic(start_state))
-    add_to_open(start_node, open_heap, open_dict)
+    add_to_open(start_node, open_set)
 
-    while open_not_empty(open_heap):
+    while open_not_empty(open_set):
+        current = get_best(open_set)
+        if current is None:
+            break
 
-        current = get_best(open_heap, open_dict)
+        if debug:
+            print(f"BEST: {current.state.get_state_str()}, g={current.g}, h={current.h}, f={current.f}")
+            print(f"Open size: {len(open_set[0])}, Closed size: {len(closed_set)}")
 
-        
-        
-        print("BEST:", current.state.get_state_str(), 
-              "g:", current.g, "h:", current.h, "f:", current.f)
-
+        # Goal check
         if color_blocks_state.is_goal_state(current.state):
-            # reconstruct path
             path = []
-            while current:
-                path.append(current)
-                current = current.prev
-            return path[::-1]
+            node = current
+            while node is not None:
+                path.append(node)
+                node = node.prev
+            path.reverse()
+            return path
 
         add_to_closed(current, closed_set)
 
-        for neighbor, edge_cost in current.get_neighbors():
-            new_g = current.g + edge_cost
-            h = base_heuristic(neighbor)
+        # Expand neighbors
+        for neighbor_state, cost in current.get_neighbors():
+            new_g = current.g + cost
+            new_node = search_node(neighbor_state, new_g, heuristic(neighbor_state), current)
 
-            child = search_node(neighbor, new_g, h, current)
+            if duplicate_in_open(new_node, open_set):
+                continue
+            if duplicate_in_closed(new_node, closed_set):
+                continue
 
-            if not duplicate_in_open(child, open_dict) \
-               and not duplicate_in_closed(child, closed_set):
+            add_to_open(new_node, open_set)
 
-                add_to_open(child, open_heap, open_dict)
-
-    return None
+    return None  # No solution found

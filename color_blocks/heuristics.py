@@ -25,40 +25,60 @@ def init_goal_for_heuristics(goal_blocks):
     
     
     
-def base_heuristic(state):
-    blocks = state.getBlocks()
-
-    # --- צור סט של כל זוגות הצבעים מה-goal ---
-    goal_pairs = set()
-
-    for i in range(len(goal_state) - 1):
-        a = goal_state[i]
-        b = goal_state[i + 1]
-        goal_pairs.add(tuple(sorted((a, b))))
-
-    h = 0
-
-    # עבור כל שני בלוקים צמודים במצב הנוכחי
-    for i in range(len(blocks) - 1):
-        block_a = blocks[i]
-        block_b = blocks[i + 1]
-
-        found = False
-
-        # נבדוק אם יש קומבינציה חוקית
-        for color_a in block_a:
-            for color_b in block_b:
-                if tuple(sorted((color_a, color_b))) in goal_pairs:
-                    found = True
+def base_heuristic(_color_blocks_state):
+    # print(type(_color_blocks_state))
+    # newTemp = color_blocks_state("")
+    # newTemp.setBlocks(_color_blocks_state)
+    # _color_blocks_state = newTemp
+    heu = 0
+    # print('--->', _color_blocks_state.get_state_str())
+    for i in range(len(_color_blocks_state.getBlocks())-1):
+        currTupA = _color_blocks_state.getBlockAt(i)
+        currTupB = _color_blocks_state.getBlockAt(i+1)
+        currHue = 0 
+        for j in range(len(goal_state)):
+            if goal_state[j] in currTupA:
+                # print('found block', goal_state[j], 'in', currTupA)
+                currHue = simple_heuristic( currTupB, goal_state,j)
+                if currHue == 0:
                     break
-            if found:
-                break
+            if goal_state[j] in currTupB:
+                # print('found block', goal_state[j], 'in', currTupB)
+                currHue = simple_heuristic( currTupA, goal_state,j)
+                if currHue == 0:
+                    break
+                
+        # print
+        heu += currHue    
+        # print(f"Block {i} and Block {i+1} heuristic: {currHue} add to total {heu}")
+            
+    # print("heuristic:", heu)
+    return heu   
 
-        if not found:
-            h += 1
 
-    return h
+def simple_heuristic( currTupB, goal_state,j):
+    heuLocal = 0
+    # print('checking for goal block:', goal_state[j], 'with current block:', currTupB)
+    if j < len(goal_state)-1 and j!=0:
+            if goal_state[j+1] in currTupB or goal_state[j-1] in currTupB:
+                heuLocal+=0
+            else:
+                heuLocal +=1
+    if j == 0:
+        if goal_state[j+1] in currTupB:
+            heuLocal+=0
+        else:
+            heuLocal +=1
+    if j == len(goal_state)-1:
+        if goal_state[j-1] in currTupB:
+            heuLocal+=0
+        else:
+            heuLocal +=1
+    return heuLocal
 
+
+    
+    
     
     
     
