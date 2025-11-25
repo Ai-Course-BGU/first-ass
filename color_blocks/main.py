@@ -8,13 +8,15 @@ from search import *
 
 if __name__ == '__main__':
 
-    start_blocks = "(1,2),(3,4),(5,6),(7,8),(9,10)"
-    goal_blocks = "4,6,2,8,10"
+    start_blocks = "(1,2),(2,3),(3,5),(5,6),(6,7),(4,4)"
+    goal_blocks  = "1,3,4,5,6,5"
+
+
     init_goal_for_heuristics(goal_blocks)
     init_goal_for_search(goal_blocks)
     start_state = color_blocks_state(start_blocks)
     start_time = time.time()
-    search_result = search(start_state, base_heuristic)
+    search_result = search(start_state, advanced_heuristic )
     end_time = time.time() - start_time
     
     # runtime

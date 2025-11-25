@@ -80,9 +80,9 @@ def search(start_state, heuristic, debug=False):
         if current is None:
             break
 
-        if debug:
-            print(f"BEST: {current.state.get_state_str()}, g={current.g}, h={current.h}, f={current.f}")
-            print(f"Open size: {len(open_set[0])}, Closed size: {len(closed_set)}")
+        # if debug:
+        # print(f"BEST: {current.state.get_state_str()}, g={current.g}, h={current.h}, f={current.f}")
+        # print(f"Open size: {len(open_set[0])}, Closed size: {len(closed_set)}")
 
         # Goal check
         if color_blocks_state.is_goal_state(current.state):
